@@ -1,0 +1,993 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>IUG 2019: Ray Voelker</title>
+
+		
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<!-- <link rel="stylesheet" href="css/theme/black.css"> -->
+		<link rel="stylesheet" href="css/theme/white.css" id="theme">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<link rel="stylesheet" href="./ray_custom.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<style>
+			.plch {
+				/*color:firebrick;*/
+				color: rgb(186, 12, 47);
+				/* font-weight: bolder; */
+				font-weight: 900;
+			}
+		</style>
+
+
+	</head>
+	<body>
+		<img id="plchlogo" src="./img/plchlogo.png" style="/*visibility: hidden;*/ position: absolute; top: 0px; right: 0px;height: 100px;">
+		<div class="reveal">
+			<div class="slides">
+
+
+				<section data-state="hidelogo" data-background-image="./img/slide1_background.png" data-background-size="contain">
+					&nbsp;
+				</section>
+
+
+				<section data-state="showlogo">
+						<h2> Quick Background</h2> 
+						<ul>
+							<li class="fragment">Sierra’s Direct SQL Access feature allows us to:
+								<ul>
+									<li class="fragment">Quickly and efficiently <span class="plch">target</span> and <span class="plch">extract</span> real-time data from the Sierra ILS.</li>
+									<li class="fragment"><span class="plch">Organize data</span> in logical and useful ways</li>
+								</ul> 
+							</li>
+						</ul>
+				</section>
+
+
+				<section>
+					<h3> Quick Background (cont.)</h3>
+					<ul>
+						<li>Why <span class="plch">save</span> / <span class="plch">preserve</span> data from Sierra?
+							<ol>
+								<li class="fragment">Data <span class="plch">transformations</span> and <span class="plch">integrations</span> for specific use cases 
+									<br /><a href="https://en.wikipedia.org/wiki/Data_transformation">wikipedia.org/wiki/Data_transformation</a>
+									<br /><a href="https://en.wikipedia.org/wiki/Data_integration">wikipedia.org/wiki/Data_integration</a>
+									<ul><li class="fragment">For example, adding <span class="plch">geocoding</span> information to patron address data:<br /> <a href="https://en.wikipedia.org/wiki/Geocoding">wikipedia.org/wiki/Geocoding</a></li></ul>
+								</li>
+							</ol>
+						</li>
+
+					</ul>
+
+				</section>
+
+
+				<section>
+						<h3> Quick Background (cont.)</h3>
+						<ul>
+							<li>Why save / preserve data from Sierra? (cont.)
+								<ol start="2">
+									<li><span class="plch">Cache</span> Sierra data:
+										<ul>
+											<li class="fragment">For use in an application <span class="plch">instead of running an “expensive query”</span> to deliver content</li>
+											<li class="fragment">For use in an application where holding onto data that may otherwise be <span class="plch">destroyed</span> or <span class="plch">transformed</span> by the Sierra application itself</li>
+										</ul>
+									</li>
+								</ol>
+							</li>
+	
+						</ul>
+	
+					</section>
+
+				<section>
+						<h2>Understanding Sierra’s database views and data</h2>
+						<p>
+							<ul>
+								<li class="fragment">Some data in sierra stays more <span class="plch">static</span><br />(think of a “receipt”, or log of transactions)</li>
+							</ul>
+						</p>
+				</section>
+
+
+				<!-- if we want to show the webpage directly ... -->
+				<section data-state="hidelogo" data-background-iframe="https://techdocs.iii.com/sierradna/Home,$DirectLink.sdirect?sp=SCirculation#circ_trans">
+				</section>
+
+				<section data-state="hidelogo" data-transition="none" data-transition-speed="fast" data-background-image="./img/circ_trans_doc_screenshot.png" data-background-size="contain"></section>
+
+
+				<section data-state="showlogo">
+					<p>
+						<h4>Understanding Sierra’s database views and data (cont.)</h4>
+						<ul>
+							<li>Circulation transactions are <span class="plch">created</span> in the database table and <span class="plch">remain static</span></li>
+							<li class="fragment"><span class="plch">Rows are deleted</span> from the table after a certain period of time (2 weeks is the default, but this can be extended by iii upon request)</li>
+						</ul>
+					</p>
+				</section>
+
+
+				<section>
+<pre><code class="sql" data-trim>
+-- get some info about our circ_trans dates
+SELECT
+NOW()::TIMESTAMP WITH TIME ZONE as now_gmt,
+MAX(c.transaction_gmt)::TIMESTAMP WITH TIME ZONE AS max,
+MIN(c.transaction_gmt)::TIMESTAMP WITH TIME ZONE AS min,
+AGE(MIN(c.transaction_gmt)) AS earliest_transaction_age
+
+FROM
+sierra_view.circ_trans as c
+</code></pre>
+
+					<img class="fragment" src="./img/circ_trans_date_info.png" style="background: none; border: none; box-shadow: none;" height="150%">
+
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Understanding Sierra’s database views and data (cont.)</h4>
+						<ul>
+							<li>Other data is more <span class="plch">variable</span> or is a direct representation that describes a particular state of a record or process in the ILS.</li>
+						</ul>
+				</section>
+
+				<!-- if we want to show the webpage directly ... -->
+				<section data-state="hidelogo" data-background-iframe="https://techdocs.iii.com/sierradna/Home,$DirectLink.sdirect?sp=SCirculation#hold">
+				</section>
+
+				<section data-state="hidelogo" data-transition="none" data-transition-speed="fast" data-background-image="./img/hold_doc_screenshot.png" data-background-size="contain"></section>
+
+				<section data-state="showlogo">
+						<h4>Understanding Sierra’s database views and data (cont.)</h4>
+						<ul>
+							<li>The <span class="plch">state of the hold</span> is defined in the Sierra database</li>
+							<li class="fragment">
+								<span class="plch">Data changes</span> depending on the state or status 
+								of the hold, and is then <span class="plch">removed from the database</span> when the 
+								hold is deleted, filled or expires
+							</li>
+						</ul>
+				</section>
+
+
+				<section>
+					<pre><code class="sql" data-trim>
+-- this will select Ray Voelker's hold information from the 
+-- Sierra SQL database
+SELECT
+h.id,
+h.patron_record_id,
+h.record_id,
+h.status,
+h.pickup_location_code
+
+FROM
+sierra_view.hold as h
+
+WHERE
+h.patron_record_id = 481038535591;</code></pre>
+
+				</section>
+
+
+				<section data-state="showlogo">
+					<img src="./img/sample_hold_query_output_example.png" style="background:none; border:none; box-shadow:none;">
+				</section>
+
+
+				<section>
+					<h2>How to cache / transform / preserve data from Sierra?</h2>
+					<ul>
+						<li class="fragment">No shortage of options!
+							<ul>
+								<li class="fragment"><span class="plch">pgAdmin</span> is a popular choice for a desktop client
+									<br /><a href="https://www.pgadmin.org/">www.pgadmin.org</a>
+								</li>
+								<li class="fragment">"Execute query, write result to file"
+									<br />Creates a <span class="plch">.csv</span> file from the results 
+								</li>
+							</ul>
+
+						</li>
+					</ul>
+				</section>
+
+
+				<section data-state="hidelogo">
+						<img src="./img/pgadmin_screenshot.png" style="background: none; border: none; box-shadow: none;">
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+					<ul>
+						<li>Many programming languages provide access to PostgreSQL via their libraries:
+							<ul>
+								<li class="fragment">php-pgsql: PHP PostgreSQL driver
+									<br /><a href="https://www.php.net/manual/en/book.pgsql.php">www.php.net/manual/en/book.pgsql.php</a>
+								</li>
+								<li class="fragment"><span class="plch">psycopg2</span>: Python PostgreSQL adapter
+									<br /><a href="http://initd.org/psycopg/docs/">initd.org/psycopg/docs/</a>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+					<ul>
+						<li>My method consists of the following overview:
+							<ol>
+								<li class="fragment">Use <span class="plch">Python</span> to connect to Sierra’s database</li>
+								<li class="fragment"><span class="plch">Issue SQL statement</span> on Sierra's database to target and compile the data for <span class="plch">extraction</span></li>
+							</ol>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+					<ul>
+						<li>My method consists of the following overview (cont.):
+							<ol start=3>
+								<li><span class="plch">Export result data</span> to either a <span class="plch">.csv file</span>, and/or directly into a <span class="plch">SQLite database</span> 
+									<ul><li class="fragment"><span class="plch">.csv</span> files are easy to later load into an SQLite database, spreadsheet, or other data warehouse tool</li></ul>
+								</li>
+							</ol>
+						</li>
+					</ul>
+					</section>
+	
+
+				
+
+
+				<section>
+					<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+					<p>SQLite Database: <a href="https://sqlite.org/index.html">sqlite.org</a></p>
+					<q cite="https://sqlite.org/index.html">SQLite is a C-language library that implements a <span class="plch">small</span>, <span class="plch">fast</span>, <span class="plch">self-contained</span>, <span class="plch">high-reliability</span>, <span class="plch">full-featured</span>, SQL database engine.</q>
+				</section>
+
+
+				<section>
+						<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+						<p>SQLite Database (cont.)</p>
+						<ul><li>SQLite database engine is a great tool for caching data:
+							<ol>
+								<li class="fragment"><span class="plch">Stores</span> and <span class="plch">organizes</span> large amounts of data quickly and efficiently</li>
+								<li class="fragment">You don’t have to set up and maintain a server (data is portable; entire database is contained in a <span class="plch">single</span>, cross-platform <span class="plch">file</span>)</li>
+							</ol>
+						</li></ul>
+				</section>
+
+
+				<section>
+						<h4>How to cache / transform / preserve data from Sierra? (cont.)</h4>
+						<p>SQLite Database (cont.)</p>
+							<ol start=3>
+								<li>Ability and flexibility to <span class="plch">build SQL queries</span> and applications that directly use the data that you’ve collected</li>
+								<li class="fragment">Has a useful desktop tool: <a href="https://sqlitebrowser.org/">sqlitebrowser.org</a></li>
+								<li class="fragment">It’s included in the <span class="plch">Python Standard Library</span>!</li>
+							</ol>
+				</section>
+
+				
+
+				<section>
+					<pre><code class="python stretch" data-trim>
+# Python sample code to create database, 
+# create a table, and then insert some data
+# note: sqlite3 is part of the Python Standard Library
+import sqlite3
+
+# create the database
+conn = sqlite3.connect('example.db')
+cursor = conn.cursor()
+
+# create the table
+cursor.execute("""CREATE TABLE IF NOT EXISTS `data` 
+	( `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+	`input` TEXT )""")
+
+# insert some data
+cursor.execute("""INSERT INTO data (`input`) 
+	VALUES ('sample text')""")
+
+# commit and close the connection
+conn.commit()
+conn.close()
+					</code></pre>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h2>Examples:</h2>
+					<ol>
+						<li class="fragment"><b>Collection Analysis / Circulation Data Analysis</b>
+							<ul><li class="fragment">intended for use with the <span class="plch">CollectionHQ</span> service, but can be adapted for local use</li></ul>
+						</li>
+						<li class="fragment"><b>Patron Savings Calculator</b>
+							<ul><li class="fragment">intended to display information on the Encore patron account information page about <span class="plch">how much money has been "saved"</span> by using the library</li></ul>
+						</li>
+					</ol>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Examples: (cont.)</h4>
+					<ol start=3>
+						<li><b>Hold Shelf Delivery Matrix Report</b>
+							<ul><li class="fragment">intended to produce a spreadsheet report of items for <span class="plch">hold shelf locations</span> (ready for patron pickup) and <span class="plch">from where they originated</span></li></ul>
+						</li>
+						<li class="fragment"><b>Mapping Geo Data from Patron Address Data and Circulation Transaction Data</b>
+							<ul><li class="fragment">intended to take geocoded patron address data and produce a <span class="plch">visualization</span> by plotting it <span class="plch">on a map</span></li></ul>
+						</li>
+					</ol>
+				</section>
+
+				<section data-state="showlogo">
+					<h2>Example 1</h2>
+					<h3> <span class="plch">Collection Analysis / Circulation Data Analysis</span></h3>
+					<ul>
+						<li><a href="https://github.com/plch/collection-analysis">github.com/plch/collection-analysis</a></li>
+						<li class="fragment">This application was built for the purpose of <span class="plch"><u>automatically</u> preserving</span> and <span class="plch">sending data</span> from the Sierra database to the <span class="plch">CollectionHQ</span> service via FTP</li>
+						
+					</ul>
+					
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Collection Analysis / Circulation Data Analysis (cont.)</h4>
+					<ul><li>Three main groups of data are targeted for export:
+						<ol>
+							<li class="fragment"><span class="plch">Bibliographic</span> Record Data:
+								<br /><a href="https://github.com/plch/collection-analysis/blob/master/temp_table-bib_data.sql">temp_table-bib_data.sql</a>
+								<br />Fields exported include: bib record number, control numbers (var fields tagged 'o'), isbn, call numbers, and a few other metadata fields related to the bib record
+							</li>
+						</ol>
+					</li></ul>
+					
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Collection Analysis / Circulation Data Analysis (cont.)</h4>
+					<ul><li>Three main groups of data are targeted for export: (cont.)
+						<ol start=2>
+							<li><span class="plch">Item</span> Record Data:
+								<br /><a href="https://github.com/plch/collection-analysis/blob/master/temp_table-item_data.sql">temp_table-item_data.sql</a>
+								<br />Fields exported include: item record number, bib record number, circulation information, price, and a few other metadata fields related to the item record
+							</li>
+						</ol>
+					</li></ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Collection Analysis / Circulation Data Analysis (cont.)</h4>
+					<ul><li>Three main groups of data are targeted for export: (cont.)
+						<ol start=3>
+							<li><span class="plch">Hold</span> Data:
+								<br /><a href="https://github.com/plch/collection-analysis/blob/master/temp_table-hold_data.sql">temp_table-hold_data.sql</a>
+								<br /> <span class="plch">Weekly snapshot</span> of bib-level holds. It is organized by title (bib record number), and then each title has a list of holds with related metadata for each hold (patron number, pickup location, created date, expiration date, etc)
+							</li>
+						</ol>
+					</li></ul>
+				</section>
+
+
+				<section>
+					<h4>Collection Analysis / Circulation Data Analysis (cont.)</h4>
+					<ul>
+						<li>Overview of the process:
+							<ol>
+								<li class="fragment"><span class="plch">Create and open .csv files</span> to hold data output and/or <span class="plch">open local database</span> (if it’s useful to place data into local SQLite database)</li>
+								<li class="fragment"><span class="plch">Connect to remote Sierra database</span>, and <span class="plch">create the temporary tables</span> that will be used for exporting</li>
+							</ol>
+						</li>
+					</ul>
+
+				</section>
+
+
+				<section>
+						<h4>Collection Analysis / Circulation Data Analysis (cont.)</h4>
+						<ul>
+							<li>Overview of the process (cont.):
+								<ol start=3>
+									<li><span class="plch">Generate data output</span> from the Sierra database temporary tables, and write the  <span class="plch">output to a .csv file</span> and/or to a local  <span class="plch">SQLite database</span></li>
+									<li class="fragment"><span class="plch">Send data</span> via FTP</li>
+								</ol>
+							</li>
+							<li class="fragment"><a href="https://github.com/plch/collection-analysis/blob/master/update.py">full export script</a>
+								can be found in the <a href="https://github.com/plch/collection-analysis/">public github repository</a>
+								for this project
+							</li>
+						</ul>
+	
+					</section>
+
+
+				<section data-state="showlogo">
+					<h2>Example 2</h2>
+					<h3> <span class="plch">Patron Savings Calculator</span></h3>
+					<ul>
+						<li><a href="https://github.com/plch/patron-savings-calculator">github.com/plch/patron-savings-calculator</a></li>
+						<li class="fragment">
+							This application was designed to work with the iii discovery layer <span class="plch">Encore's account detail page</span>,
+							to display how much a patron has "saved" by borrowing from the library
+						</li>
+						
+					</ul>
+				</section>
+
+
+				<section data-state="hidelogo">
+					<img src="./img/encore_patron_savings.png" style="background:none; border:none; box-shadow:none;">
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						<li>
+							<span class="plch">Cached “savings” information</span> is based on the patron record number
+							and can be output in multiple formats (based on this application's custom URL endpoints):
+							<ul>
+								<li class="fragment">JSON
+									<br /><a href="https://ilsweb.cincinnatilibrary.org/api/v1/patron_savings/2198439">/api/v1/patron_savings/2198439</a>
+									<br /><pre class="fragment"><code data-trim class="JSON stretch">
+{
+	"count_titles": 118,
+	"min_date_epoch": 1534957500,
+	"patron_record_num": 2198439,
+	"total_savings": 2109.2799999999997
+}
+									</code></pre>
+								</li>
+							</ul>
+						</li>
+					</ul>
+
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						<li>
+							<span class="plch">Cached “savings” information</span> is based on the patron record number
+							and can be output in multiple formats (based on this application's custom URL endpoints):
+							<ul>
+								<li>PNG
+									<br /><a href="https://ilsweb.cincinnatilibrary.org/api/v1/patron_savings/img/2198439">/api/v1/patron_savings/img/2198439</a>
+									<br /><img class="fragment plain stretch" src="./img/png_patron_savings.png">
+								</li>
+							</ul>
+						</li>
+					</ul>
+	
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						<li>About this very simple RESTful API
+							<ul>
+								<li class="fragment">
+									Written as a Python / Flask application:
+									<ul>
+										<li><a href="https://github.com/plch/patron-savings-calculator/blob/master/app.py">github.com/plch/patron-savings-calculator/blob/master/app.py</a></li>
+										<li><a href="https://www.palletsprojects.com/p/flask/">www.palletsprojects.com/p/flask</a></li>
+									</ul>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						<li>About this very simple RESTful API (cont)
+							<ul>
+								<li>
+									Hosted on an Apache Web Server via the WSGI module
+								</li>
+								<li class="fragment">
+									A good tutorial on how this can be set up can be found here: 
+									<br /><a href="https://www.digitalocean.com/community/tutorials/how-to-deploy-a-flask-application-on-an-ubuntu-vps">www.digitalocean.com/community/tutorials/how-to-deploy-a-flask-application-on-an-ubuntu-vps</a>
+								</li>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						<li>About this very simple RESTful API (cont)
+							<ul>
+								<li>
+									Draws data from the SQLite database that has been <span class="plch">caching relevant data</span>
+								</li>
+								<li class="fragment">
+									SQLite database, `<span class="plch">patron_savings.db</span>` is updated frequently (every 5 minutes) via a <span class="plch">Python update script</span>:
+									<br /><a href="https://github.com/plch/patron-savings-calculator/blob/master/update.py">github.com/plch/patron-savings-calculator/blob/master/update.py</a>
+								</li>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						About the `<span class="plch">update.py</span>` script :
+						<ul>
+							<li class="fragment">Script starts by looking at the <span class="plch">last entry it received</span> from the <span class="plch">Sierra database</span></li>
+							<li class="fragment">A query is constructed to <span class="plch">extract relevant data from the Sierra database</span> that is <span class="plch">more recent</span> than that <span class="plch">last entry</span> in the local database</li>
+							<li class="fragment">The local database is updated with the <span class="plch">fresh data</span> from the Sierra database</li>
+						</ul>
+					</ul>
+
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						A note about privacy / protection / obfuscation of this data:
+						<ul>
+							<li class="fragment">No title information is saved in the local database, other than a hashed bib record id</li>
+							<li class="fragment">Hashed bib record id is stored to avoid duplicating the price information when a title is checked out multiple times, and to differentiate titles from one another in the local database</li>
+							
+						</ul>
+					</ul>
+	
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Patron Savings Calculator (cont.)</h4>
+					<ul>
+						A note about obfuscation with this data (cont.):
+						<ul>
+							<li>No patron information, other than the patron record number, is stored in the local database</li>
+							<li class="fragment">Only price and number of titles checked out are surfaced via the RESTful API</li>
+						</ul>
+					</ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h2>Example 3</h2>
+					<h3><span class="plch">Hold Shelf Delivery Matrix Report</span></h3>
+					<ul>
+						<li><a href="https://github.com/plch/plch-holds-shelf">github.com/plch/plch-holds-shelf</a></li>
+						<li class="fragment">The purpose of this application is to create a spreadsheet that displays 
+							items delivered to a hold shelf location, and from what location they came from</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<img class="stretch plain" src="./img/hold_shelf_matrix.png">
+				</section>
+
+				<section>
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<p>SELECT FROM <b>`sierra_view.hold`</b> WHERE <b>`status`</b> =</p>
+					<table>
+						<thead>
+							<tr>
+								<th>code</th>
+								<th>definition</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>"b"</td>
+								<td>Bib hold ready for pickup</td>
+							</tr>
+							<tr>
+								<td>"j"</td>
+								<td>Volume hold ready for pickup</td>
+							</tr>
+							<tr>
+								<td>"i"</td>
+								<td>Item hold ready for pickup</td>
+							</tr>
+						</tbody>
+					</table>
+
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>Source location:
+							<ul>
+								<li>
+									`<span class="plch">checkin_statistics_group_code_num</span>`
+									<br />found in `<span class="plch">sierra_view.item_record</span>` table view
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>Destination location:
+								<ul>
+									<li>`<span class="plch">pickup_location_code</span>`
+									<br />found in `<span class="plch">sierra_view.hold</span>`
+								</li>
+								</ul>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>
+							Note: the <span class="plch">source</span> value of `<span class="plch">location_code</span>` comes from
+							<br />`<span class="plch">sierra_view.statistic_group_myuser</span>`
+							<br />using `<span class="plch">checkin_statistics_group_code_num</span>` 
+							effectively giving us the <span class="plch">pickup location</span> from the stat group code num
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>Do not insert duplicate rows of hold data...
+							<ul>
+								<li class="fragment">We could build a complicated set of comparisons of the remotely selected data to our local data ... </li>
+								<li class="fragment">Or, we could <span class="plch">let the databases do all the work!</span></li>
+								<li class="fragment">Create a <span class="plch">hash of the entire hold row</span>, use that value as the <span class="plch">unique primary key</span> in the local database table</li>
+							</ul>
+						</li>
+					</ul>
+
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<p>Local SQLite table creation (simplified)</p>
+					<pre><code data-trim class="sqlite3 stretch">
+--  local SQLite table creation (simplified) ... 
+CREATE TABLE IF NOT EXISTS "data" (
+	`hash_row` TEXT UNIQUE PRIMARY KEY
+	-- more columns created below ...
+);
+					</code></pre>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<p>Remote Sierra database query (simplified)</p>
+					<pre><code data-trim class="PostgreSQL stretch">
+-- remote Sierra database query (simplified) ...
+SELECT
+MD5(CAST((h.*) AS TEXT)) AS hash_row
+-- more columns of data selected below
+FROM
+sierra_view.hold AS h
+WHERE
+h.status IN(
+	'b', 'j', 'i'
+);
+					</code></pre>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<p>Remote Sierra database query (simplified) output:</p>
+					<img src="./img/hold_table_hash_selection_output.png" class="plain">
+				</section>
+
+				<section>
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<p>Local SQLite table inserting the retrieved data (simplified):</p>
+					<pre><code data-trim class="sqlite3 stretch">
+INSERT OR IGNORE INTO data (
+	hash_row
+)
+VALUES ('59752190f26bda0ec17167010cc6619f'), 
+       ('59752190f26bda0ec17167010cc6619f'),
+       ('ce971535718d416fd09e9266797c9374');
+
+SELECT * FROM DATA;
+					</code></pre>
+					<img src="./img/local_table_hash_selection_output.png" class="fragment plain">
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>Overview of the process: <span class="fragment">(this should look familiar)</span>
+							<ol>
+								<li class="fragment">Connect to our local database, and create table if it doesn’t exist. Also, establish connection to the remote Sierra database</li>
+								<li class="fragment">Query the Sierra ‘hold’ table for rows that have status of ‘i’, ‘j’, or ‘b’; this indicates that there is a item hold, volume hold, or bib hold ready for pickup</li>
+							</ol>
+						</li>
+					</ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul>
+						<li>Overview of the process: (cont.)
+							<ol start=3>
+								<li>Insert retrieved rows (or ignore duplicate rows as explained previously) to the local SQLite database, then close all connections</li>
+								<li class="fragment">Set the update of local data to happen frequently (every 5 minutes via CRON is a good method for doing this)</li>
+							</ol>
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul><li>Exporting / Producing the <span class="plch">report</span>
+						<ol>
+							<li class="fragment">Query the local SQLite database, then export the results to a .csv file:
+								<br /><a class="fragment" href="https://github.com/plch/plch-holds-shelf/blob/master/export_csv.sh">github.com/plch/plch-holds-shelf/blob/master/export_csv.sh</a>
+								<br /><a class="fragment" href="https://github.com/plch/plch-holds-shelf/blob/master/export.sql">github.com/plch/plch-holds-shelf/blob/master/export.sql</a>
+							</li>
+						</ol>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul><li>Exporting / Producing the report (cont.)
+						<ol start=2>
+							<li><span class="plch">Import the .csv file into LibreOffice Calc</span> (or Excel) and perform a <span class="plch">pivot</span> on the data:</li>
+						</ol>
+					</ul>
+				</section>
+
+				<section data-state="hidelogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul><li>Exporting / Producing the report (cont.)</li></ul>
+					<img class="plain stretch" src="./img/create_pivot_table_1of3.png">
+				</section>
+
+
+				<section data-state="hidelogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul><li>Exporting / Producing the report (cont.)</li></ul>
+					<img class="plain stretch" src="./img/create_pivot_table_2of3.png">
+				</section>
+
+				
+				<section data-state="hidelogo">
+					<h4>Hold Shelf Delivery Matrix Report (cont.)</h4>
+					<ul><li>Exporting / Producing the report (cont.)</li></ul>
+					<img class="plain stretch" src="./img/create_pivot_table_3of3.png">
+				</section>
+
+				<section data-state="hidelogo" data-transition="none" data-transition-speed="fast" data-background-image="./img/hold_shelf_matrix.png" data-background-size="contain">
+					<a class="fragment" href="./img/2019-04-15_hold_shelf_matrix.xlsx">2019-04-15_hold_shelf_matrix.xlsx</a>
+				</section>
+	
+
+
+				<section data-state="showlogo">
+					<h2>Example 4</h2>
+					<h3><span class="plch">Mapping Geo Data from Patron Address Data and Circulation Transaction Data</span></h3>
+					<ul>
+						<li class="fragment">The purpose of this process is to plot patron locations and branch locations on a map based on latitude / longitude coordinates derived from mailing address data </li>
+						<li class="fragment">This is a <span class="plch">work in progress!</span></li>
+					</ul>
+				</section>
+
+
+				<section data-state="hidelogo" data-transition="none" data-transition-speed="fast" data-background-image="./img/patron_map_plot.png" data-background-size="contain">
+					&nbsp;
+				</section>
+
+				<section data-state="hidelogo" data-transition="none" data-transition-speed="fast" data-background-image="./img/patron_map_plot_02.png" data-background-size="contain">
+					&nbsp;
+				</section>
+
+				<section data-state="showlogo">
+					<ul>
+						<h4>Mapping Geo Data (cont.)</h4>
+						<ul>
+							<li><span class="plch">Cached data</span> is contained in an <span class="plch">SQLite database</span>
+								<ul>
+									<li class="fragment">
+										<span class="plch">Circulation data</span>
+										<br />(weekly export of `sierra_view.circ_trans` table view)
+									</li>
+									<li class="fragment">
+										<span class="plch">Patron data</span>
+										<br />(weekly export of relevant patron information from multiple table views)
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Mapping Geo Data (cont.)</h4>
+					<ul>
+						<li>
+							Geocoding Patron Street Addresses:
+							<ul>
+								<li class="fragment">Patron address data (<b style="color:firebrick">patron_record_id</b>, <b>street number</b>, <b>street name</b>, <b>city</b>, <b>zip</b>) are exported to a .csv file</li>
+							</ul>
+
+						</li>
+					</ul>
+				</section>
+
+
+				<section data-state="showlogo">
+					<h4>Mapping Geo Data (cont.)</h4>
+					<ul>
+						<li>Possible <span class="plch">Geocoding Services</span>:
+							<ul>
+								<li class="fragment">Census.gov
+									<br /><a href="https://www.census.gov/data/developers/data-sets/Geocoding-services.html">www.census.gov/data/developers/data-sets/Geocoding-services.html</a>
+								</li>
+								<li class="fragment">Google
+									<br /><a href="https://developers.google.com/maps/documentation/javascript/geocoding">developers.google.com/maps/documentation/javascript/geocoding</a>
+								</li>
+								<li class="fragment"><span style="color:firebrick">SmartyStreets</span>
+									<br /><a href="https://smartystreets.com/products/list">smartystreets.com/products/list</a>
+								</li>
+							</ul>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Mapping Geo Data (cont.)</h4>
+					<ul>
+						<li>
+							<span style="color:firebrick">SmartyStreets</span> has some very user-friendly services for bulk upload / download of address data for verification and geocoding
+						</li>
+						<li class="fragment">
+							SmartyStreets may be able to offer a discounted / free service to libraries that allow for 
+							bulk verification / geocoding as well as on-the-fly verification and auto-corrected address 
+							inputs for things such as web input forms
+						</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Mapping Geo Data (cont.)</h4>
+					<ul>
+						<li>SmartyStreets list service returns .csv data back with relevant address information, identified by the unique ID (`<span style="color:firebrick">patron_record_id</span>`) that was provided</li>
+						<li>We may easily load this into the local SQLite database with the import csv feature (from the GUI)</li>
+					</ul>
+				</section>
+
+				<section data-state="showlogo">
+					<h4>Mapping Geo Data (cont.)</h4>
+					<ul>
+						<li>There are very good data analysis / visualization tools available for Python:
+							<ul>
+								<li class="fragment"><span style="color:firebrick">PyViz</span>
+									<br /><a href="https://pyviz.org/">pyviz.org</a>
+								</li>
+								<li class="fragment">A Conda metapackage "pyviz"</li>
+								<li class="fragment">Makes data visualization in Python easier to use</li>
+							</ul>
+
+						</li>
+					</ul>
+
+				</section>
+
+				<section data-state="showlogo">
+					<a href="./img/jupyter_notebook_example.pdf">jupyter_notebook_example.pdf</a>
+				</section>
+
+				<section data-background-iframe="./img/jupyter_notebook_example.pdf" data-state="hidelogo">
+					&nbsp;
+				</section>
+
+
+				<section data-background-image="./img/thank_you_01.gif" data-state="showlogo">
+					<p style="
+						position: absolute; 
+						left: 0;
+						right: 0; 
+						margin: 15px 0;
+						padding: 0 5px;
+						font-family: impact;
+						font-size: 2.5em;
+						text-transform: uppercase;
+						color: white;
+						letter-spacing: 1px;
+						text-shadow:2px 2px 0 #000,
+						-2px -2px 0 #000,
+						2px -2px 0 #000,
+						-2px 2px 0 #000,
+						0px 2px 0 #000,
+						2px 0px 0 #000,
+						0px -2px 0 #000,
+						-2px 0px 0 #000,
+						2px 2px 5px #000;
+					">Thank You!
+					<br />Questions?</p>
+				</section>
+
+
+
+
+
+				
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+
+
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+
+			Reveal.addEventListener( 'hidelogo', function() {
+				var img = document.getElementById('plchlogo');
+				img.style.visibility = 'hidden';
+			}, false );
+
+			Reveal.addEventListener( 'showlogo', function() {
+					var img = document.getElementById('plchlogo');
+					img.style.visibility = 'visible';
+			}, false );
+		</script>
+	</body>
+</html>
